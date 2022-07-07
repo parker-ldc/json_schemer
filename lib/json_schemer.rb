@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 require 'base64'
+require 'bigdecimal'
 require 'ipaddr'
 require 'json'
 require 'net/http'
 require 'pathname'
+require 'set'
 require 'time'
 require 'uri'
 
@@ -44,7 +46,7 @@ module JSONSchemer
     raise InvalidFileURI, 'cannot have a host (use `file:///`)' if uri.host && !uri.host.empty?
     path = uri.path
     path = path[1..-1] if path.match?(WINDOWS_URI_PATH_REGEX)
-    JSON.parse(File.read(path))
+    JSON.parse(File.read(URI::DEFAULT_PARSER.unescape(path)))
   end
 
   class << self
@@ -53,7 +55,7 @@ module JSONSchemer
       when String
         schema = JSON.parse(schema)
       when Pathname
-        uri = URI.parse(File.join('file:', schema.realpath))
+        uri = URI.parse(File.join('file:', URI::DEFAULT_PARSER.escape(schema.realpath.to_s)))
         if options.key?(:ref_resolver)
           schema = FILE_URI_REF_RESOLVER.call(uri)
         else
